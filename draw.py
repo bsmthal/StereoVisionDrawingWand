@@ -3,13 +3,31 @@ from tkinter import *
 import threading
 import numpy as np
 import cv2 as cv
+import utils
 
 
-lh = 0
-uh = 179
-ls = 49
+# Orange Ping-Pong Ball
+# lh = 13
+# uh = 45
+# ls = 25
+# us = 255
+# lv = 207
+# uv = 255
+
+# Illumminated Orange Ping-Pong Ball
+# lh = 7
+# uh = 41
+# ls = 21
+# us = 36
+# lv = 236
+# uv = 255
+
+# Blue Master Locks
+lh = 73
+uh = 124
+ls = 146
 us = 255
-lv = 165
+lv = 20
 uv = 255
 
 
@@ -21,24 +39,64 @@ def process():
     global lv
     global uv
 
-    cap = cv.VideoCapture(0)
+    cap_L = cv.VideoCapture(1)
+    cap_R = cv.VideoCapture(2)
 
     while True:
-        ret, frame = cap.read()
+        ret_L, frame_L = cap_L.read()
+        ret_R, frame_R = cap_R.read()
 
-        if not ret:
+        if not ret_L or not ret_R:
             continue
 
+        # --------------------------------- #
+
         # Color Filter
-        hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         lower_filter = np.array([lh, ls, lv])
         upper_filter = np.array([uh, us, uv])
-        colorMask = cv.inRange(hsv, lower_filter, upper_filter)
-        frame_colorFiltered = cv.bitwise_and(frame, frame, mask=colorMask)
+        frame_colorFiltered_L = utils.filterColor(
+            frame=frame_L,
+            lower_filter=lower_filter,
+            upper_filter=upper_filter,
+        )
+        frame_colorFiltered_R = utils.filterColor(
+            frame=frame_R,
+            lower_filter=lower_filter,
+            upper_filter=upper_filter,
+        )
 
-        disp = np.append(frame, frame_colorFiltered, axis=1)
+        # Find "Pen" Tip
+        contour_L = utils.findPenTipContour(frame_colorFiltered_L)
+        # contour_R = utils.findPenTipContour(frame_colorFiltered_R)
+
+        frame_contour_L = utils.revealContour(frame_colorFiltered_L, contour_L)
+        # frame_contour_R = utils.revealContour(frame_R, contour_R)
+
+        # Draw at Pen Tip
+        frame_drawn_L = utils.draw(frame_L, contour_L)
+
+        # --------------------------------- #
+
+        # Display Image Processing
+        original_footage = np.append(frame_L, frame_R, axis=1)
+        filtered_footage = np.append(
+            frame_colorFiltered_L, frame_colorFiltered_R, axis=1
+        )
+        # contour_footage = np.append(frame_contour_L, frame_contour_R, axis=1)
+        contour_footage = np.append(frame_contour_L, frame_drawn_L, axis=1)
+        # drawn_footage = np.append(frame_drawn_L, frame_drawn_R, axis=1)
+        disp = np.append(original_footage, filtered_footage, axis=0)
+        disp = np.append(disp, contour_footage, axis=0)
+        disp = cv.resize(disp, (0, 0), fx=0.7, fy=0.7)
         cv.imshow("footage", disp)
 
+        # Print Info
+        area = 0
+        if contour_L is not None:
+            area = cv.contourArea(contour_L)
+        print(f"lh={lh} uh={uh} ls={ls} us={us} lv={lv} uv={uv}\tarea={area}")
+
+        # Escape
         if cv.waitKey(1) == ord("q"):
             break
 
