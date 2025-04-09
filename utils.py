@@ -107,9 +107,11 @@ frame_pen = np.zeros((480, 640, 4), dtype=np.uint8)
 def mergePenAndFrame(frame):
     global frame_pen
 
-    alpha = frame_pen[:, :, 3].copy().astype(float) / 255
+    cv.imshow("pen", frame_pen)
+
+    alpha = frame_pen[:, :, 3].astype(float) / 255
     frame_drawn = (
-        frame_pen[:, :, :3].astype(float) * alpha[..., None].astype(float) / 255
+        frame_pen[:, :, :3].astype(float) * alpha[..., None]
         + frame * (1 - alpha[..., None])
     ).astype(np.uint8)
 
