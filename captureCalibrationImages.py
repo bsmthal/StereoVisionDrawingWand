@@ -61,10 +61,9 @@ while count < NUM_CALIB_IMAGES:
     if cv.waitKey(1) == ord("p"):
         # Save picture here
         cv.imwrite(f"calibrationImages/SL{count:02}.png", img_L)
-        cv.imwrite(f"calibrationImages/SR{count:02}.png", img_L)
+        cv.imwrite(f"calibrationImages/SR{count:02}.png", img_R)
         count += 1
         print(f"Stereo:\t{count}")
-        pass
 
 cv.destroyAllWindows()
 
