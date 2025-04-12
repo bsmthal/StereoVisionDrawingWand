@@ -12,6 +12,10 @@ zeroZone = (-1, -1)
 cap_L = cv.VideoCapture(1)
 cap_R = cv.VideoCapture(2)
 
+
+# -------------------------- LEFT/RIGHT -------------------------- #
+
+
 count = 0
 while count < NUM_CALIB_IMAGES:
     ret_L, frame_L = cap_L.read()
@@ -68,6 +72,9 @@ while count < NUM_CALIB_IMAGES:
 cv.destroyAllWindows()
 
 
+# -------------------------- LEFT -------------------------- #
+
+
 count = 0
 while count < NUM_CALIB_IMAGES:
     ret_L, frame_L = cap_L.read()
@@ -110,6 +117,10 @@ while count < NUM_CALIB_IMAGES:
         pass
 
 cv.destroyAllWindows()
+
+
+# -------------------------- RIGHT -------------------------- #
+
 
 count = 0
 while count < NUM_CALIB_IMAGES:
