@@ -2,10 +2,56 @@ import numpy as np
 import cv2 as cv
 
 
-MIN_CONTOUR_AREA = 25
+MIN_CONTOUR_AREA = 50
 MAX_CONTOUR_AREA = 120000
+MIN_Z_VALUE = 200
+MAX_Z_VALUE = 10
 MIN_PEN_THICKNESS = 1
-MAX_PEN_THICKNESS = 20
+MAX_PEN_THICKNESS = 50
+FADE_RATE = 5
+PEN_COLOR = (182, 120, 36, 255)
+PEN_ERR_COLOR = (0, 0, 255, 255)
+
+cameraMatrix1 = np.array(
+    [
+        [757.22843882, 0.0, 320.3740059],
+        [0.0, 758.51441095, 233.85838898],
+        [0.0, 0.0, 1.0],
+    ]
+)
+distCoeffs1 = np.array(
+    [[-3.89929360e-02, 2.10226478e00, -4.38657735e-03, 1.97721858e-03, -9.46339572e00]]
+)
+cameraMatrix2 = np.array(
+    [
+        [760.67003412, 0.0, 334.76383869],
+        [0.0, 761.42430642, 238.78456012],
+        [0.0, 0.0, 1.0],
+    ]
+)
+distCoeffs2 = np.array(
+    [[-8.59026936e-02, 3.65916735e00, -2.69853348e-04, 5.15314334e-03, -2.19480083e01]]
+)
+imageSize = (640, 480)
+R = np.array(
+    [
+        [0.99995199, -0.00318981, -0.00926529],
+        [0.00299109, 0.99976687, -0.02138379],
+        [0.00933134, 0.02135505, 0.99972841],
+    ]
+)
+T = np.array([[-6.58059429], [-0.0243418], [0.48546735]])
+R1, R2, P1, P2, Q, roi_L, roi_R = cv.stereoRectify(
+    cameraMatrix1=cameraMatrix1,
+    distCoeffs1=distCoeffs1,
+    cameraMatrix2=cameraMatrix2,
+    distCoeffs2=distCoeffs2,
+    imageSize=imageSize,
+    R=R,
+    T=T,
+    flags=cv.CALIB_ZERO_DISPARITY,
+    alpha=0.5,
+)
 
 
 def filterColor(frame, lower_filter, upper_filter):
@@ -24,7 +70,7 @@ def thresholdImage(frame):
     ret, frame_low = cv.threshold(frame_gray, 5, 255, 0)
     ret, frame_high = cv.threshold(frame_gray, 255, 255, cv.THRESH_BINARY_INV)
     frame_thresh = cv.bitwise_and(frame_low, frame_high)
-    cv.imshow("", frame_thresh)
+    # cv.imshow("", frame_thresh)
     return frame_thresh
 
 
@@ -84,7 +130,6 @@ def getBallCenter2D(contour):
 
 def getBallCenter3D(contour_L, contour_R):
     point3D = None
-    Q = None
 
     M_L = cv.moments(contour_L)
     M_R = cv.moments(contour_R)
@@ -96,18 +141,24 @@ def getBallCenter3D(contour_L, contour_R):
 
         d = cx_L - cx_R
         point2D = np.array([[[cx_L, cy_L, d]]], dtype=np.float32)
-        point3D = cv.perspectiveTransform(point2D, Q).T
+        point3D = cv.perspectiveTransform(point2D, Q).T.reshape(3)
 
     return point3D
 
 
-frame_pen = np.zeros((480, 640, 4), dtype=np.uint8)
+frame_pen_L = np.zeros((480, 640, 4), dtype=np.uint8)
+frame_pen_R = np.zeros((480, 640, 4), dtype=np.uint8)
 
 
-def mergePenAndFrame(frame):
-    global frame_pen
+def mergePenAndFrame(frame, isLeft: bool):
+    global frame_pen_L
+    global frame_pen_R
+    if isLeft:
+        frame_pen = frame_pen_L
+    else:
+        frame_pen = frame_pen_R
 
-    cv.imshow("pen", frame_pen)
+    # cv.imshow("pen", frame_pen)
 
     alpha = frame_pen[:, :, 3].astype(float) / 255
     frame_drawn = (
@@ -118,7 +169,7 @@ def mergePenAndFrame(frame):
     for x in range(frame.shape[0]):
         for y in range(frame.shape[1]):
             if frame_pen[x, y, 3] > 0:
-                frame_pen[x, y, 3] -= 5
+                frame_pen[x, y, 3] -= FADE_RATE
 
     # frame_drawn = frame.copy()
     # for x in range(frame.shape[0]):
@@ -130,38 +181,46 @@ def mergePenAndFrame(frame):
     return frame_drawn
 
 
-previousPoint = [-1, -1]
+previousPoint_L = [-1, -1]
+previousPoint_R = [-1, -1]
 
 
-def draw(frame, contour):
-    global frame_pen
-    global previousPoint
-
+def draw(frame, contour, isLeft: bool, thick: int):
+    global frame_pen_L
+    global frame_pen_R
+    global previousPoint_L
+    global previousPoint_R
+    if isLeft:
+        previousPoint = previousPoint_L
+    else:
+        previousPoint = previousPoint_R
     pt = getBallCenter2D(contour)
-    # getBallCenter3D()
 
     frame_drawn = frame.copy()
     # print(pt)
     if pt[0] < 0 or previousPoint[0] < 0:
         pass
     else:
-        if contour is None:
-            print("No contour")
-        # r = np.sqrt(cv.contourArea(contour)) / 1000
-        # t = int(MIN_PEN_THICKNESS + (cv.contourArea(contour) - MIN_CONTOUR_AREA) * (MAX_PEN_THICKNESS - MIN_PEN_THICKNESS) / (MAX_CONTOUR_AREA - MIN_CONTOUR_AREA))
-        # scaled = out_min + (out_max - out_min) * (math.log(x) - math.log(in_min)) / (
-        #     math.log(in_max) - math.log(in_min)
-        # )
-        t = int(
-            MIN_PEN_THICKNESS
-            + (MAX_PEN_THICKNESS - MIN_PEN_THICKNESS)
-            * (np.log(cv.contourArea(contour)) - np.log(MIN_CONTOUR_AREA))
-            // (np.log(MAX_CONTOUR_AREA) - np.log(MIN_CONTOUR_AREA))
-        )
-        cv.line(frame_pen, previousPoint, pt, (255, 0, 255, 255), thickness=t)
-        # cv.circle(frame_pen, pt, radius=int(r), color=(255, 0, 255, 255), thickness=1)
+        try:
+            if thick == 1:
+                penColor = PEN_ERR_COLOR
+            else:
+                penColor = PEN_COLOR
 
-    previousPoint = pt
+            if isLeft:
+                cv.line(frame_pen_L, previousPoint, pt, penColor, thickness=thick)
+                # cv.circle(
+                #     frame_pen_L, pt, radius=int(thick), color=penColor, thickness=thick
+                # )
+            else:
+                cv.line(frame_pen_R, previousPoint, pt, penColor, thickness=thick)
+        except:
+            pass
 
-    frame_drawn = mergePenAndFrame(frame)
+    if isLeft:
+        previousPoint_L = pt
+    else:
+        previousPoint_R = pt
+
+    frame_drawn = mergePenAndFrame(frame, isLeft=isLeft)
     return frame_drawn
