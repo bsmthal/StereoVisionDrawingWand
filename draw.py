@@ -7,13 +7,21 @@ import utils
 
 MIN_CONTOUR_AREA = 30
 MAX_CONTOUR_AREA = 120000
-MIN_Z_VALUE = 85
-MAX_Z_VALUE = 8
+MIN_Z_VALUE = 350
+MAX_Z_VALUE = 10
 MIN_PEN_THICKNESS = 2
-MAX_PEN_THICKNESS = 80
+MAX_PEN_THICKNESS = 50
 FADE_RATE = 5
 PEN_COLOR = (182, 120, 36, 255)
 
+
+# Pink Whiffle Ball
+lh = 148
+uh = 206
+ls = 36
+us = 255
+lv = 206
+uv = 255
 
 # Orange Ping-Pong Ball
 # lh = 15
@@ -24,12 +32,12 @@ PEN_COLOR = (182, 120, 36, 255)
 # uv = 255
 
 # Orange Ping-Pong Ball (Home)
-lh = 9
-uh = 16
-ls = 188
-us = 255
-lv = 47
-uv = 255
+# lh = 9
+# uh = 16
+# ls = 188
+# us = 255
+# lv = 47
+# uv = 255
 
 # Illumminated Orange Ping-Pong Ball
 # lh = 7
@@ -85,7 +93,7 @@ while True:
     contour_R = future_R.result()
 
     pt_3d = utils.getBallCenter3D(contour_L=contour_L, contour_R=contour_R)
-    print(pt_3d)
+    # print(pt_3d)
     try:
         # Logarithmic Scaling
         t = int(

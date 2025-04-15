@@ -16,6 +16,14 @@ MAX_PEN_THICKNESS = 80
 FADE_RATE = 5
 PEN_COLOR = (182, 120, 36, 255)
 
+# Pink Whiffle Ball
+lh = 163
+uh = 192
+ls = 78
+us = 255
+lv = 176
+uv = 255
+
 
 # Orange Ping-Pong Ball
 # lh = 15
@@ -26,12 +34,12 @@ PEN_COLOR = (182, 120, 36, 255)
 # uv = 255
 
 # Orange Ping-Pong Ball (Home)
-lh = 9
-uh = 16
-ls = 188
-us = 255
-lv = 47
-uv = 255
+# lh = 9
+# uh = 16
+# ls = 188
+# us = 255
+# lv = 47
+# uv = 255
 
 # Illumminated Orange Ping-Pong Ball
 # lh = 7
